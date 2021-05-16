@@ -17,9 +17,9 @@ func main() {
 
 func run(args []string, stdin io.Reader, stdout io.Writer, stderr io.Writer) int {
 	cmd := cobra.Command{
-		Use:     "shapipe",
+		Use:     "checksum",
 		Long:    "Verify stdin matches SHA256 checksum and pipe to output. Stdin is piped to stdout regardless of verification, but command errors with exit code 1 if verification fails.",
-		Example: "curl ... | shapipe -c <hash> | tar xz -C <dir>",
+		Example: "curl ... | checksum -c <hash> | tar xz -C <dir>",
 		SilenceUsage: true,
 	}
 	cmd.SetIn(stdin)
