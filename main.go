@@ -3,11 +3,10 @@ package main
 import (
 	"crypto/sha256"
 	"encoding/hex"
+	"flag"
 	"fmt"
 	"io"
 	"os"
-
-	"github.com/spf13/cobra"
 )
 
 func main() {
@@ -16,42 +15,27 @@ func main() {
 }
 
 func run(args []string, stdin io.Reader, stdout io.Writer, stderr io.Writer) int {
-	cmd := cobra.Command{
-		Use:     "checksum",
-		Long:    "Verify stdin matches SHA256 checksum and pipe to output. Stdin is piped to stdout regardless of verification, but command errors with exit code 1 if verification fails.",
-		Example: "curl ... | checksum -c <hash> | tar xz -C <dir>",
-		SilenceUsage: true,
-	}
-	cmd.SetArgs(args)
-	cmd.SetIn(stdin)
-	cmd.SetOutput(stdout)
-	cmd.SetErr(stderr)
-
 	checksum := ""
-	cmd.Flags().StringVarP(&checksum, "checksum", "c", checksum, "SHA256 checksum to verify against stdin")
 
-	cmd.RunE = func(cmd *cobra.Command, args []string) error {
-		h := sha256.New()
+	flagSet := flag.NewFlagSet("checksum", flag.ExitOnError)
+	flagSet.SetOutput(stderr)
+	flagSet.StringVar(&checksum, "c", checksum, "sha256 checksum to verify against stdin")
+	flagSet.Parse(args)
 
-		w := io.MultiWriter(h, cmd.OutOrStdout())
-		_, err := io.Copy(w, cmd.InOrStdin())
-		if err != nil {
-			return err
-		}
-
-		sum := h.Sum(nil)
-		sumHex := hex.EncodeToString(sum)
-		if sumHex != checksum {
-			return fmt.Errorf("sha256 of input %s does not match checksum %s", sumHex, checksum)
-		}
-
-		fmt.Fprint(cmd.ErrOrStderr(), sumHex)
-		return nil
-	}
-
-	err := cmd.Execute()
+	h := sha256.New()
+	w := io.MultiWriter(h, stdout)
+	_, err := io.Copy(w, stdin)
 	if err != nil {
+		fmt.Fprintf(stderr, "error: %s\n", err)
 		return 1
 	}
+	sum := h.Sum(nil)
+	sumHex := hex.EncodeToString(sum)
+	if sumHex != checksum {
+		fmt.Fprintf(stderr, "error: sha256 of input %s does not match checksum %s\n", sumHex, checksum)
+		return 1
+	}
+
+	fmt.Fprintln(stderr, sumHex)
 	return 0
 }
