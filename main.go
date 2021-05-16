@@ -22,6 +22,7 @@ func run(args []string, stdin io.Reader, stdout io.Writer, stderr io.Writer) int
 		Example: "curl ... | checksum -c <hash> | tar xz -C <dir>",
 		SilenceUsage: true,
 	}
+	cmd.SetArgs(args)
 	cmd.SetIn(stdin)
 	cmd.SetOutput(stdout)
 	cmd.SetErr(stderr)
